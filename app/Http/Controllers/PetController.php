@@ -7,22 +7,22 @@ use App\Http\Requests\UpdatePetRequest;
 use App\Models\Pet;
 use App\Models\PetOwner;
 use App\Services\DomainService;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PetController extends Controller
 {
     public function __construct(private DomainService $service) {}
 
-    public function index()
+    public function index(): Response
     {
         $pets = Pet::with('owner')->paginate(15);
-        return view('pets.index', compact('pets'));
+        return Inertia::render('pets/index', compact('pets'));
     }
 
-    public function create()
+    public function create(): Response
     {
-        return view('pets.create', [
-            'owners' => PetOwner::orderBy('name')->get(),
-        ]);
+        return Inertia::render('pets/create');
     }
 
     public function store(StorePetRequest $request)
@@ -37,11 +37,11 @@ class PetController extends Controller
         return redirect()->route('pets.index')->with('success', 'Pet updated successfully.');
     }
 
-    public function edit(Pet $pet)
+    public function edit(Pet $pet): Response
     {
-        return view('pets.edit', [
-            'pet'    => $pet,
-            'owners' => PetOwner::orderBy('name')->get(),
+        return Inertia::render('pets/edit', [
+            'pet' => $pet,
+            'owners' => PetOwner::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 }

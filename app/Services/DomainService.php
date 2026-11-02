@@ -40,11 +40,29 @@ class DomainService
 
     public function createPet(array $data): Pet
     {
+        $ownerName = $this->sanitizeText($data['owner_name']);
+        unset($data['owner_name']);
+
         $data['name']    = $this->sanitizeText($data['name']);
         $data['species'] = $this->sanitizeText($data['species']);
         $data['breed']   = $this->sanitizeText($data['breed'] ?? null);
 
-        return DB::transaction(fn () => Pet::create($data));
+        return DB::transaction(function () use ($data, $ownerName) {
+            $owner = PetOwner::query()
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($ownerName)])
+                ->first();
+
+            if ($owner === null) {
+                $owner = PetOwner::create([
+                    'name' => $ownerName,
+                    'phone' => null,
+                ]);
+            }
+
+            $data['owner_id'] = $owner->id;
+
+            return Pet::create($data);
+        });
     }
 
     public function updatePet(Pet $pet, array $data): Pet
@@ -104,6 +122,11 @@ class DomainService
     public function updateVisit(MedicalVisit $visit, array $data): MedicalVisit
     {
         return DB::transaction(function () use ($visit, $data) {
+            $replaceTreatments = (bool) ($data['treatments_submitted'] ?? false);
+            unset($data['treatments_submitted']);
+            $treatments = $data['treatments'] ?? [];
+            unset($data['treatments']);
+
             if (isset($data['diagnosis'])) {
                 $data['diagnosis'] = $this->sanitizeText($data['diagnosis']);
                 if ($data['diagnosis'] === '') {
@@ -116,6 +139,23 @@ class DomainService
             }
 
             $visit->update($data);
+
+            if ($replaceTreatments) {
+                $visit->treatments()->delete();
+
+                foreach ($treatments as $treatment) {
+                    $visit->treatments()->create([
+                        'treatment_given' => $this->sanitizeText($treatment['treatment_given']),
+                        'cost' => $this->formatMoney($treatment['cost']),
+                    ]);
+                }
+
+                if ($treatments !== []) {
+                    $visit->procedure_cost = $visit->treatments()->sum('cost');
+                    $visit->save();
+                }
+            }
+
             return $visit->fresh()->load('pet.owner', 'veterinarian', 'treatments');
         });
     }

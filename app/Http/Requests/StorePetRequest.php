@@ -14,7 +14,7 @@ class StorePetRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'owner_id' => ['required', 'exists:pet_owners,id'],
+            'owner_name' => ['required', 'string', 'max:100'],
             'name'     => ['required', 'string', 'max:100'],
             'species'  => ['required', 'string', 'max:50'],
             'breed'    => ['nullable', 'string', 'max:100'],
@@ -24,8 +24,7 @@ class StorePetRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'owner_id.required' => 'Please select an owner.',
-            'owner_id.exists'   => 'The selected owner does not exist.',
+            'owner_name.required' => 'Please enter the owner name.',
             'species.required'  => 'Please specify the pet species.',
         ];
     }

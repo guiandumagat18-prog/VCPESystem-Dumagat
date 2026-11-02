@@ -20,6 +20,10 @@ class UpdateMedicalVisitRequest extends FormRequest
             'diagnosis'       => ['sometimes', 'string', 'min:5'],
             'procedure_cost'  => ['sometimes', 'numeric', 'min:0'],
             'payment_status'  => ['sometimes', 'in:pending,paid,cancelled'],
+            'treatments_submitted' => ['sometimes', 'boolean'],
+            'treatments' => ['sometimes', 'array'],
+            'treatments.*.treatment_given' => ['required', 'string', 'max:255'],
+            'treatments.*.cost' => ['required', 'numeric', 'min:0'],
         ];
     }
 
